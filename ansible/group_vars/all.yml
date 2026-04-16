@@ -5,16 +5,27 @@ pipeline_data_dir: "{{ pipeline_root }}/data"
 pipeline_tools_dir: "{{ pipeline_root }}/tools"
 pipeline_venv_dir: "{{ pipeline_root }}/venv"
 
+# Common
+python_path: "{{ pipeline_venv_dir }}/bin/python3"
+home_path: "/home/almalinux"
+
 # Addresses
 controller_ip: "{{ hostvars[groups['controller'][0]].ansible_host }}"
 
 # Dask config
 dask_scheduler_port: 8786
+dask_scheduler_host: "{{ controller_ip }}"
+dask_scheduler_url: "tcp://{{ dask_scheduler_host }}:{{ dask_scheduler_port }}"
 dask_dashboard_port: 8787
-dask_scheduler_url: "tcp://{{ controller_ip }}:{{ dask_scheduler_port }}"
-dask_dashboard_address: "{{ controller_ip }}:{{ dask_dashboard_port }}"
 
 # Prefect config
 prefect_server_port: 4200
-prefect_api_url: "http://{{ controller_ip }}:{{ prefect_server_port }}/api"
-prefect_ui_url: "http://{{ controller_ip }}:{{ prefect_server_port }}"
+prefect_server_host: "{{ controller_ip }}"
+prefect_server_url: "http://{{ controller_ip }}:{{ prefect_server_port }}"
+prefect_api_url: "{{ prefect_server_url }}/api"
+# prefect_ui_url: "http://{{ controller_ip }}:{{ prefect_server_port }}"
+
+# MinIO config
+minio_port: 9000
+minio_host: "{{ controller_ip }}"
+minio_url: "http://{{ controller_ip }}:{{ minio_port }}"

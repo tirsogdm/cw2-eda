@@ -1,3 +1,7 @@
 dask_worker_python_deps:
   - dask[distributed]
   - minio
+
+dask_worker_nworkers: 5
+dask_worker_nthreads: 1
+dask_worker_memory_limit: "6GB"

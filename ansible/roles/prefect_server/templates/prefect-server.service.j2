@@ -6,11 +6,11 @@ Wants=network-online.target
 [Service]
 User=almalinux
 ExecStart={{ pipeline_venv_dir }}/bin/prefect server start \
-    --host {{ controller_ip }} \
+    --host {{ prefect_server_host }} \
     --port {{ prefect_server_port }}
 Restart=on-failure
 RestartSec=5
-Environment=HOME=/home/almalinux
+Environment=HOME={{ home_path }}
 
 [Install]
 WantedBy=multi-user.target

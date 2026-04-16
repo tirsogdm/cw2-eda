@@ -1,0 +1,18 @@
+[Unit]
+Description=MinIO Object Storage
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=almalinux
+ExecStart={{ minio_path }} server {{ minio_data_dir }} \
+    --address {{ minio_host }}:{{ minio_port }} \
+    --console-address {{ minio_host }}:{{ minio_console_port }}
+Restart=on-failure
+RestartSec=5
+Environment=MINIO_ROOT_USER={{ minio_root_user }}
+Environment=MINIO_ROOT_PASSWORD={{ minio_root_password }}
+Environment=HOME={{ home_path }}
+
+[Install]
+WantedBy=multi-user.target

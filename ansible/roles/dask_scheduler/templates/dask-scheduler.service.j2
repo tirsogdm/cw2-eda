@@ -6,9 +6,9 @@ Wants=network-online.target
 [Service]
 User=almalinux
 ExecStart={{ pipeline_venv_dir }}/bin/dask scheduler \
-    --host {{ controller_ip }} \
+    --host {{ dask_scheduler_host }} \
     --port {{ dask_scheduler_port }} \
-    --dashboard-address {{ dask_dashboard_address }}
+    --dashboard-address {{ dask_scheduler_host }}:{{ dask_dashboard_port }}
 Restart=on-failure
 RestartSec=5
 

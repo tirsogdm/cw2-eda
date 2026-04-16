@@ -1,0 +1,19 @@
+- name: Deploy MinIO server systemd service
+  become: true
+  ansible.builtin.template:
+    src: minio-server.service.j2
+    dest: /etc/systemd/system/minio-server.service
+    mode: '0644'
+  notify: restart minio-server
+
+- name: Reload systemd
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Enable and start MinIO server
+  become: true
+  ansible.builtin.systemd:
+    name: minio-server
+    enabled: true
+    state: started

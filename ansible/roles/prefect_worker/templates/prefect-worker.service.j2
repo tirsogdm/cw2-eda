@@ -9,7 +9,7 @@ ExecStart={{ pipeline_venv_dir }}/bin/prefect worker start \
     --pool {{ prefect_work_pool_name }}
 Restart=on-failure
 RestartSec=5
-Environment=HOME=/home/almalinux
+Environment=HOME={{ home_path }}
 Environment=PREFECT_API_URL={{ prefect_api_url }}
 
 [Install]

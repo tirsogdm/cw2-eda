@@ -1,0 +1,24 @@
+- name: Wait for MinIO to be ready
+  ansible.builtin.wait_for:
+    host: "{{ minio_host }}"
+    port: "{{ minio_port }}"
+    delay: 5
+    timeout: 30
+  
+- name: Copy bucket creation script
+  ansible.builtin.copy:
+    src: create_bucket.py
+    dest: /tmp/create_bucket.py
+    mode: '0755'
+
+- name: Create MinIO bucket
+  ansible.builtin.command:
+    cmd: >
+      {{ python_path }} /tmp/create_bucket.py
+      {{ minio_host }}:{{ minio_port }}
+      {{ minio_root_user }}
+      {{ minio_root_password }}
+      {{ minio_bucket_name }}
+  register: bucket_result
+  changed_when: "'created' in bucket_result.stdout"
+  failed_when: bucket_result.rc != 0

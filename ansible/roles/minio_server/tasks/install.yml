@@ -1,0 +1,15 @@
+- name: Download MinIO binary
+  become: true
+  ansible.builtin.get_url:
+    url: "{{ minio_install_url }}"
+    dest: "{{ minio_path }}"
+    mode: '0755'
+
+- name: Create MinIO data directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ minio_data_dir }}"
+    state: directory
+    mode: '0755'
+    owner: almalinux
+    group: almalinux

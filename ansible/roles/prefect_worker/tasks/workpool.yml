@@ -9,4 +9,7 @@
   register: workpool_result
   failed_when:
     - workpool_result.rc != 0
-    - "'already exists' not in workpool_result.stderr"
+    - "'already exists' not in workpool_result.stdout"
+  changed_when:
+    - workpool_result.rc == 0
+    - "'already exists' not in workpool_result.stdout"

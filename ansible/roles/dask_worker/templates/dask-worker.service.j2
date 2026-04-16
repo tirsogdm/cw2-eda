@@ -6,9 +6,9 @@ Wants=network-online.target
 [Service]
 User=almalinux
 ExecStart={{ pipeline_venv_dir }}/bin/dask worker {{ dask_scheduler_url }} \
-    --nworkers 5 \
-    --nthreads 1 \
-    --memory-limit 6GB
+    --nworkers {{ dask_worker_nworkers }} \
+    --nthreads {{ dask_worker_nthreads }} \
+    --memory-limit {{ dask_worker_memory_limit }}
 Restart=on-failure
 RestartSec=5
 
