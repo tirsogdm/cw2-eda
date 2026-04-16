@@ -35,3 +35,16 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# ---------------------
+# ----- ADDITIONS -----
+# ---------------------
+
+.venv/
+__pycache__/
+*.pyc
+*.log
+*.gz
+*.tar.gz
+.env
+.DS_Store
