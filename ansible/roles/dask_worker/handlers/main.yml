@@ -1,0 +1,6 @@
+- name: restart dask-worker
+  become: true
+  ansible.builtin.systemd:
+    name: dask-worker
+    daemon_reload: true
+    state: restarted

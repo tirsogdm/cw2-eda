@@ -1,0 +1,16 @@
+[Unit]
+Description=Dask Worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=almalinux
+ExecStart={{ pipeline_venv_dir }}/bin/dask worker {{ dask_scheduler_url }} \
+    --nworkers 5 \
+    --nthreads 1 \
+    --memory-limit 6GB
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

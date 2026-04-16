@@ -1,0 +1,32 @@
+- name: Create pipeline directories
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: almalinux
+    group: almalinux
+  loop:
+    - "{{ pipeline_root }}"
+    - "{{ pipeline_code_dir }}"
+    - "{{ pipeline_data_dir }}"
+    - "{{ pipeline_tools_dir }}"
+
+- name: Create Python virtual environment
+  ansible.builtin.command:
+    cmd: python3 -m venv "{{ pipeline_venv_dir }}"
+    creates: "{{ pipeline_venv_dir }}/bin/activate"
+
+- name: Upgrade pip in venv
+  ansible.builtin.pip:
+    virtualenv: "{{ pipeline_venv_dir }}"
+    name: pip
+    state: latest
+
+- name: Ensure controller-node is resolvable
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    state: present
+    regexp: 'controller-node$'
+    line: "{{ hostvars[groups['controller'][0]].ansible_host }} controller-node"

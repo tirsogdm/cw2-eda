@@ -1,0 +1,6 @@
+prefect_worker_python_deps:
+  - prefect
+  - prefect-dask
+
+prefect_work_pool_name: "lit-sem-search-pool"
+prefect_work_pool_type: "process"

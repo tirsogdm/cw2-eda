@@ -1,0 +1,19 @@
+- name: Deploy prefect-worker systemd service
+  become: true
+  ansible.builtin.template:
+    src: prefect-worker.service.j2
+    dest: /etc/systemd/system/prefect-worker.service
+    mode: '0644'
+  notify: restart prefect-worker
+
+- name: Reload systemd
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Enable and start prefect-worker
+  become: true
+  ansible.builtin.systemd:
+    name: prefect-worker
+    enabled: true
+    state: started

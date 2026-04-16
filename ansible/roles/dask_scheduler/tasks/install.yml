@@ -1,0 +1,5 @@
+- name: Install dask_scheduler Python dependencies
+  ansible.builtin.pip:
+    virtualenv: "{{ pipeline_venv_dir }}"
+    name: "{{ dask_scheduler_python_deps }}"
+    state: latest

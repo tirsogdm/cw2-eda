@@ -1,0 +1,19 @@
+- name: Deploy GROBID server systemd service
+  become: true
+  ansible.builtin.template:
+    src: grobid-server.service.j2
+    dest: /etc/systemd/system/grobid-server.service
+    mode: '0644'
+  notify: restart grobid-server
+
+- name: Reload systemd
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Enable and start GROBID server
+  become: true
+  ansible.builtin.systemd:
+    name: grobid-server
+    enabled: true
+    state: started

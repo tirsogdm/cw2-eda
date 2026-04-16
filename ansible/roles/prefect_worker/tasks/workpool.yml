@@ -1,0 +1,12 @@
+- name: Create Dask work pool
+  ansible.builtin.command:
+    cmd: >
+      {{ pipeline_venv_dir }}/bin/prefect work-pool create
+      {{ prefect_work_pool_name }}
+      --type {{ prefect_work_pool_type }}
+  environment:
+    PREFECT_API_URL: "{{ prefect_api_url }}"
+  register: workpool_result
+  failed_when:
+    - workpool_result.rc != 0
+    - "'already exists' not in workpool_result.stderr"

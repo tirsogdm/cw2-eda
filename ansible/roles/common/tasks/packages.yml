@@ -1,0 +1,16 @@
+- name: Install base packages
+  become: true
+  ansible.builtin.dnf:
+    name:
+      - python3
+      - python3-pip
+      - python3-devel
+      - git
+      - wget
+      - curl
+      - unzip
+      - vim
+      - htop
+      - tmux
+      - net-tools
+    state: present

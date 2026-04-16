@@ -1,0 +1,16 @@
+[Unit]
+Description=Dask Scheduler
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=almalinux
+ExecStart={{ pipeline_venv_dir }}/bin/dask scheduler \
+    --host {{ controller_ip }} \
+    --port {{ dask_scheduler_port }} \
+    --dashboard-address {{ dask_dashboard_address }}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

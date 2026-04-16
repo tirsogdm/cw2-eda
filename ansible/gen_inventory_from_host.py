@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import sys, json
-import Path
+from pathlib import Path
 
 script_dir = Path(__file__).resolve().parent
 inventory_path = script_dir.parent / "build_cluster" / "inventory.json"

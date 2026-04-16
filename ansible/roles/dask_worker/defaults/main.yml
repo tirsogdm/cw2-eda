@@ -1,0 +1,3 @@
+dask_worker_python_deps:
+  - dask[distributed]
+  - minio

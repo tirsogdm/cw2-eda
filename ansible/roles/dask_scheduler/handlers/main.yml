@@ -1,0 +1,6 @@
+- name: restart dask-scheduler
+  become: true
+  ansible.builtin.systemd:
+    name: dask-scheduler
+    daemon_reload: true
+    state: restarted

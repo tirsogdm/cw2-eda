@@ -1,0 +1,5 @@
+- name: Install prefect_server Python dependencies
+  ansible.builtin.pip:
+    virtualenv: "{{ pipeline_venv_dir }}"
+    name: "{{ prefect_server_python_deps }}"
+    state: latest

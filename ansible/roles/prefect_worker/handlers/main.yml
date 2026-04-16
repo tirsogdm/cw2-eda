@@ -1,0 +1,6 @@
+- name: restart prefect-worker
+  become: true
+  ansible.builtin.systemd:
+    name: prefect-worker
+    daemon_reload: true
+    state: restarted

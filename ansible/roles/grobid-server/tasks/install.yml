@@ -1,0 +1,29 @@
+- name: Install Java
+  become: true
+  ansible.builtin.dnf:
+    name: java-21-openjdk-devel
+    state: present
+
+- name: Download GROBID
+  ansible.builtin.get_url:
+    url: "{{ grobid_install_url }}"
+    dest: "/tmp/grobid-{{ grobid_version }}.zip"
+    mode: '0644'
+
+- name: Unzip GROBID
+  ansible.builtin.unarchive:
+    src: "/tmp/grobid-{{ grobid_version }}.zip"
+    dest: "{{ pipeline_tools_dir }}"
+    remote_src: true
+    creates: "{{ grobid_dir }}"
+
+- name: Rename GROBID directory
+  ansible.builtin.command:
+    cmd: mv "{{ pipeline_tools_dir }}/grobid-{{ grobid_version }}" "{{ grobid_dir }}"
+    creates: "{{ grobid_dir }}"
+
+- name: Deploy GROBID config
+  ansible.builtin.template:
+    src: grobid.yaml.j2
+    dest: "{{ grobid_dir }}/grobid-home/config/grobid.yaml"
+    mode: '0644'

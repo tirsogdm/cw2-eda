@@ -1,0 +1,4 @@
+- import_tasks: local.yml
+- import_tasks: update.yml
+- import_tasks: packages.yml
+- import_tasks: setup.yml

@@ -1,0 +1,14 @@
+[Unit]
+Description=GROBID Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=almalinux
+WorkingDirectory={{ grobid_dir }}
+ExecStart={{ grobid_dir }}/gradlew run
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

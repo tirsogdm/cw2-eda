@@ -1,0 +1,6 @@
+- name: restart grobid-server
+  become: true
+  ansible.builtin.systemd:
+    name: grobid-server
+    daemon_reload: true
+    state: restarted

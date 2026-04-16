@@ -1,0 +1,16 @@
+[Unit]
+Description=Prefect Worker
+After=network-online.target prefect-server.service
+Wants=network-online.target
+
+[Service]
+User=almalinux
+ExecStart={{ pipeline_venv_dir }}/bin/prefect worker start \
+    --pool {{ prefect_work_pool_name }}
+Restart=on-failure
+RestartSec=5
+Environment=HOME=/home/almalinux
+Environment=PREFECT_API_URL={{ prefect_api_url }}
+
+[Install]
+WantedBy=multi-user.target

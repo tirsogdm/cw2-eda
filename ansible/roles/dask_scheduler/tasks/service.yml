@@ -1,0 +1,19 @@
+- name: Deploy dask-scheduler systemd service
+  become: true
+  ansible.builtin.template:
+    src: dask-scheduler.service.j2
+    dest: /etc/systemd/system/dask-scheduler.service
+    mode: '0644'
+  notify: restart dask-scheduler
+  
+- name: Reload systemd
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Enable and start dask-scheduler
+  become: true
+  ansible.builtin.systemd:
+    name: dask-scheduler
+    enabled: true
+    state: started
