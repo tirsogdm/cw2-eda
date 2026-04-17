@@ -30,3 +30,13 @@
     state: present
     regexp: 'controller-node$'
     line: "{{ hostvars[groups['controller'][0]].ansible_host }} controller-node"
+
+- name: Deploy quality of life tmux config
+  ansible.builtin.copy:
+    content: |
+      set -g mouse on
+      set -g history-limit 10000
+    dest: /home/almalinux/.tmux.conf
+    owner: almalinux
+    group: almalinux
+    mode: '0644'
