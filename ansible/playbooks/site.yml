@@ -1,0 +1,16 @@
+- hosts: all
+  roles:
+    - common
+    - pipeline_code
+
+- hosts: controller
+  roles:
+    - dask_scheduler
+    - minio_server
+    - prefect_server
+    - prefect_worker
+
+- hosts: workers
+  roles:
+    - dask_worker
+    - grobid_server

@@ -1,0 +1,10 @@
+- name: Deploy Prefect flows
+  ansible.builtin.command:
+    cmd: "{{ pipeline_venv_dir }}/bin/prefect deploy --all"
+    chdir: "{{ pipeline_code_dir }}"
+  environment:
+    PREFECT_API_URL: "{{ prefect_api_url }}"
+  register: deploy_result
+  changed_when: >
+    'successfully created' in deploy_result.stdout or
+    'successfully updated' in deploy_result.stdout

@@ -77,15 +77,20 @@ resource "harvester_virtualmachine" "host" {
     delete = "5m"
   }
 
-  # Example Instance labels
-  # tags = {
-  #  condenser_ingress_isEnabled = true
-  #  condenser_ingress_isAllowed = true
-  #  condenser_ingress_prometheus_hostname = "prometheus-${var.username}"
-  #  condenser_ingress_prometheus_port = 9090
-  #  condenser_ingress_streamlit_hostname = "protein-pipeline-${var.username}"
-  #  condenser_ingress_streamlit_port = 8501
-  # }
+  # Instance labels
+  tags = {
+    condenser_ingress_isEnabled = true
+    condenser_ingress_isAllowed = true
+    
+    condenser_ingress_prefect_hostname = "prefect-${var.username}"
+    condenser_ingress_prefect_port = 4200
+    
+    condenser_ingress_dask_hostname = "dask-${var.username}"
+    condenser_ingress_dask_port = 8787
+    
+    condenser_ingress_minio_hostname = "minio-${var.username}"
+    condenser_ingress_minio_port = 9001
+  }
 }
 
 resource "harvester_virtualmachine" "worker" {

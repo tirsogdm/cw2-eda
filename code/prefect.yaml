@@ -1,0 +1,22 @@
+name: literature-sem-search
+prefect-version: 3.0.0
+
+build: null
+push: null
+pull: null
+
+deployments:
+  - name: indexing-flow
+    entrypoint: flows/indexing_flow.py:indexing_flow
+    work_pool:
+      name: lit-sem-search-pool
+    parameters:
+      paper_ids_file: /opt/literature-sem-search/data/paper_ids.json
+
+  - name: query-flow
+    entrypoint: flows/query_flow.py:query_flow
+    work_pool:
+      name: lit-sem-search-pool
+    parameters:
+      query: ""
+      top_k: 10
