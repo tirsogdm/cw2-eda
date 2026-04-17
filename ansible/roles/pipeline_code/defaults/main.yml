@@ -1,0 +1,3 @@
+pipeline_code_python_deps:
+  - requests
+  - minio

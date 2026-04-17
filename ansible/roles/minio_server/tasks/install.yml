@@ -1,3 +1,9 @@
+- name: Install MinIO Python dependencies
+  ansible.builtin.pip:
+    virtualenv: "{{ pipeline_venv_dir }}"
+    name: "{{ minio_python_deps }}"
+    state: latest
+
 - name: Download MinIO binary
   become: true
   ansible.builtin.get_url:

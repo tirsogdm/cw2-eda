@@ -1,0 +1,5 @@
+- name: Install pipeline code dependencies
+  ansible.builtin.pip:
+    virtualenv: "{{ pipeline_venv_dir }}"
+    name: "{{ pipeline_code_python_deps }}"
+    state: latest

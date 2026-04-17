@@ -1,3 +1,6 @@
+minio_python_deps:
+  - minio
+
 minio_install_url: "https://dl.min.io/server/minio/release/linux-amd64/minio"
 minio_path: "/usr/local/bin/minio"
 minio_data_dir: "{{ pipeline_data_dir }}/minio"

@@ -1,0 +1,5 @@
+- name: Sync pipeline code
+  ansible.builtin.copy:
+    src: "{{ repo_path }}/code/"
+    dest: "{{ pipeline_code_dir }}/"
+    mode: '0755'

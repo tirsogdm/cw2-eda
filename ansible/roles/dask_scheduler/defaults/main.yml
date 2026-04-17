@@ -1,4 +1,3 @@
 # Dask-scheduler Python Dependencies 
 dask_scheduler_python_deps:
   - dask[distributed]
-  - minio # move `minio` somewhere else when possible

@@ -8,6 +8,7 @@ pipeline_venv_dir: "{{ pipeline_root }}/venv"
 # Common
 python_path: "{{ pipeline_venv_dir }}/bin/python3"
 home_path: "/home/almalinux"
+repo_path: "{{ home_path }}/cw2-eda" # On ansible-running host (also: {{ ansible_inventory_sources[0] | dirname | dirname | dirname }})
 
 # Addresses
 controller_ip: "{{ hostvars[groups['controller'][0]].ansible_host }}"

@@ -1,6 +1,5 @@
 dask_worker_python_deps:
   - dask[distributed]
-  - minio
 
 dask_worker_nworkers: 5
 dask_worker_nthreads: 1
