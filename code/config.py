@@ -2,7 +2,6 @@ import os
 
 # Paths
 DATA_DIR = os.getenv("DATA_DIR", "/opt/literature-sem-search/data")
-FAISS_INDEX_PATH = os.getenv("FAISS_INDEX_PATH", f"{DATA_DIR}/faiss.index")
 METADATA_PATH = os.getenv("METADATA_PATH", f"{DATA_DIR}/metadata.json")
 
 # arXiv
@@ -26,3 +25,6 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 EMBEDDING_DIM = 384
 CHUNK_SIZE = 256
 CHUNK_OVERLAP = 32
+
+# FAISS
+FAISS_INDEX_PATH = os.getenv("FAISS_INDEX_PATH", f"{DATA_DIR}/faiss.index")

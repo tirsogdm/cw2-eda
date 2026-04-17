@@ -1,3 +1,5 @@
 pipeline_code_python_deps:
   - requests
   - minio
+  - sentence-transformers
+  - faiss-cpu
