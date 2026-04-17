@@ -8,9 +8,11 @@ User=almalinux
 ExecStart={{ pipeline_venv_dir }}/bin/prefect server start \
     --host {{ prefect_server_host }} \
     --port {{ prefect_server_port }}
+
 Restart=on-failure
 RestartSec=5
 Environment=HOME={{ home_path }}
+Environment=PREFECT_UI_API_URL=https://prefect-{{ username }}.comp0235.condenser.arc.ucl.ac.uk/api
 
 [Install]
 WantedBy=multi-user.target
