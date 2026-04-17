@@ -1,4 +1,4 @@
-- name: Install MinIO Python dependencies
+- name: Install minio_server Python dependencies
   ansible.builtin.pip:
     virtualenv: "{{ pipeline_venv_dir }}"
     name: "{{ minio_python_deps }}"

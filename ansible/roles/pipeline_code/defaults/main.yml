@@ -3,3 +3,4 @@ pipeline_code_python_deps:
   - minio
   - sentence-transformers
   - faiss-cpu
+  - prefect-dask

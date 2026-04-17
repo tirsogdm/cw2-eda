@@ -3,3 +3,9 @@
     virtualenv: "{{ pipeline_venv_dir }}"
     name: "{{ pipeline_code_python_deps }}"
     state: latest
+
+- name: Install pipeline code as editable package
+  ansible.builtin.pip:
+    virtualenv: "{{ pipeline_venv_dir }}"
+    name: "{{ pipeline_code_dir }}"
+    editable: true

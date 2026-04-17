@@ -28,3 +28,6 @@ CHUNK_OVERLAP = 32
 
 # FAISS
 FAISS_INDEX_PATH = os.getenv("FAISS_INDEX_PATH", f"{DATA_DIR}/faiss.index")
+
+# Dask
+DASK_SCHEDULER_URL = "tcp://controller-node:8786"
