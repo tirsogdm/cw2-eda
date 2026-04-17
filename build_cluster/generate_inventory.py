@@ -52,4 +52,9 @@ def generate_inventory():
 
 if __name__ == "__main__":
     inv = generate_inventory()
-    print(inv)
+
+    output_path = Path(__file__).resolve().parent / "inventory.json"
+    with open(output_path, "w") as f:
+        f.write(inv)
+    
+    print(f"Inventory written to {output_path}")
