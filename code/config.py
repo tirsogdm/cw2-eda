@@ -1,6 +1,7 @@
 import os
 
 # Paths
+CODE_DIR = os.getenv("DATA_DIR", "/opt/literature-sem-search/code")
 DATA_DIR = os.getenv("DATA_DIR", "/opt/literature-sem-search/data")
 METADATA_PATH = os.getenv("METADATA_PATH", f"{DATA_DIR}/metadata.json")
 
