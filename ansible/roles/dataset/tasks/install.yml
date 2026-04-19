@@ -1,0 +1,22 @@
+- name: Install Kaggle CLI
+  ansible.builtin.pip:
+    virtualenv: "{{ pipeline_venv_dir }}"
+    name: kaggle
+    state: present
+
+- name: Create Kaggle config directory
+  ansible.builtin.file:
+    path: "{{ kaggle_config_dir }}"
+    state: directory
+    mode: '0700'
+    owner: almalinux
+    group: almalinux
+
+- name: Deploy Kaggle credentials
+  ansible.builtin.copy:
+    content: |
+      {"username":"{{ kaggle_username }}","key":"{{ kaggle_key }}"}
+    dest: "{{ kaggle_config_dir }}/kaggle.json"
+    mode: '0600'
+    owner: almalinux
+    group: almalinux

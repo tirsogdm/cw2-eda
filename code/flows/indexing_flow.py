@@ -1,83 +1,83 @@
 import json
 from pathlib import Path
-from typing import Optional
-from prefect import flow, task, get_run_logger
+from prefect import flow, get_run_logger
 from prefect_dask import DaskTaskRunner
-import tempfile
+from minio import Minio
+from minio.error import S3Error
+import faiss
 
-import sys
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from tasks.fetch import fetch_pdf
-from tasks.extract import extract_text
-from tasks.embed import generate_embedding
-from tasks.save import save_embedding
+from tasks.process import process_paper
 from tasks.index import build_index
-from config import DASK_SCHEDULER_URL
+from config import (
+    DASK_SCHEDULER_URL,
+    MINIO_HOST,
+    MINIO_PORT,
+    MINIO_ROOT_USER,
+    MINIO_ROOT_PASSWORD,
+    MINIO_BUCKET_NAME,
+    FAISS_INDEX_PATH
+)
 
+def _get_minio_client() -> Minio:
+    return Minio(
+        f"{MINIO_HOST}:{MINIO_PORT}",
+        access_key=MINIO_ROOT_USER,
+        secret_key=MINIO_ROOT_PASSWORD,
+        secure=False
+    )
 
-@task(retries=2, retry_delay_seconds=30)
-def process_paper(paper_id: str) -> Optional[bool]:
+def _stream_paper_ids(paper_ids_key: str, max_papers: int) -> list:
     """
-    Full per-paper pipeline: fetch -> extract -> embed -> save.
-    Runs on a Dask worker.
-
-    Args:
-        paper_id: arXiv paper ID
-
-    Returns:
-        True if successful, None if any stage failed
+    Stream arXiv metadata JSONL from MinIO line by line,
+    extracting paper IDs up to max_papers.
     """
-    logger = get_run_logger()
+    try:
+        client = _get_minio_client()
+        response = client.get_object(MINIO_BUCKET_NAME, paper_ids_key)
+        
+        paper_ids = []
+        for line in response:
+            if len(paper_ids) >= max_papers:
+                break
+            line = line.decode('utf-8').strip()
+            if not line:
+                continue
+            try:
+                paper = json.loads(line)
+                paper_ids.append(paper['id'])
+            except json.JSONDecodeError:
+                continue
+        
+        response.close()
+        response.release_conn()
+        return paper_ids
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        # Stage 1: Fetch
-        pdf_path = fetch_pdf(paper_id, tmpdir)
-        if pdf_path is None:
-            logger.warning(f"Fetch failed for {paper_id}, skipping")
-            return None
-
-        # Stage 2: Extract
-        text = extract_text(pdf_path)
-        if text is None:
-            logger.warning(f"Extraction failed for {paper_id}, skipping")
-            return None
-
-    # Stage 3: Embed
-    embedding = generate_embedding(text)
-    if embedding is None:
-        logger.warning(f"Embedding failed for {paper_id}, skipping")
-        return None
-
-    # Stage 4: Save
-    success = save_embedding(paper_id, embedding)
-    if not success:
-        logger.warning(f"Save failed for {paper_id}, skipping")
-        return None
-
-    logger.info(f"Successfully processed {paper_id}")
-    return True
-
+    except S3Error as e:
+        return []
 
 @flow(
     name="indexing-flow",
     task_runner=DaskTaskRunner(address=DASK_SCHEDULER_URL)
 )
-def indexing_flow(paper_ids_file: str):
+def indexing_flow(paper_ids_key: str = "papers/arxiv-metadata.json", max_papers: int = 20000):
     """
-    Main indexing flow. Reads paper IDs from file, distributes
-    processing across Dask workers, then builds FAISS index.
+    Main indexing flow. Downloads arXiv metadata from MinIO,
+    extracts paper IDs, distributes processing across Dask workers,
+    then builds FAISS index.
 
     Args:
-        paper_ids_file: path to JSON file containing list of paper IDs
+        paper_ids_key: MinIO object key for arXiv metadata JSONL
+        max_papers: maximum number of papers to index
     """
     logger = get_run_logger()
 
-    # Load paper IDs
-    with open(paper_ids_file, "r") as f:
-        paper_ids = json.load(f)
-
-    logger.info(f"Loaded {len(paper_ids)} paper IDs from {paper_ids_file}")
+    # Stream load paper IDs
+    logger.info(f"Stream loading metadata from MinIO: {paper_ids_key}")
+    paper_ids = _stream_paper_ids(paper_ids_key, max_papers)
+    if not paper_ids:
+        logger.error(f"Failed to load metadata from MinIO: {paper_ids_key}")
+        return None
+    logger.info(f"Loaded {len(paper_ids)} paper IDs (max: {max_papers})")
 
     # Submit all papers to Dask workers in parallel
     futures = [process_paper.submit(pid) for pid in paper_ids]
@@ -96,7 +96,8 @@ def indexing_flow(paper_ids_file: str):
     success = build_index()
 
     if success:
-        logger.info("Index built successfully")
+        index = faiss.read_index(FAISS_INDEX_PATH)
+        logger.info(f"Index built successfully — {index.ntotal} papers indexed")
     else:
         logger.error("Index build failed")
 
@@ -106,7 +107,11 @@ def indexing_flow(paper_ids_file: str):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--paper-ids-file", required=True, help="Path to JSON file of paper IDs")
+    parser.add_argument("--paper-ids-key", default="papers/arxiv-metadata.json")
+    parser.add_argument("--max-papers", type=int, default=50000)
     args = parser.parse_args()
 
-    indexing_flow(args.paper_ids_file)
+    indexing_flow(
+        paper_ids_key=args.paper_ids_key,
+        max_papers=args.max_papers
+    )

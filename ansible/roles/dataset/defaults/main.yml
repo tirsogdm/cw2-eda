@@ -1,0 +1,4 @@
+kaggle_username: "{{ vault_kaggle_username }}"
+kaggle_key: "{{ vault_kaggle_key }}"
+kaggle_config_dir: "{{ home_path }}/.kaggle"
+kaggle_dataset: "Cornell-University/arxiv"

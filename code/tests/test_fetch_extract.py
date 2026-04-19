@@ -4,8 +4,6 @@ import sys
 import os
 import argparse
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
 from tasks.fetch import fetch_pdf
 from tasks.extract import extract_text
 

@@ -1,0 +1,51 @@
+- name: Copy MinIO scripts
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /tmp/
+    mode: '0755'
+  loop:
+    - check_metadata.py
+    - upload_metadata.py
+
+- name: Check if metadata already in MinIO
+  ansible.builtin.command:
+    cmd: >
+      {{ python_path }} /tmp/check_metadata.py
+      {{ minio_host }}:{{ minio_port }}
+      {{ minio_root_user }}
+      {{ minio_root_password }}
+      {{ minio_bucket_name }}
+      papers/{{ arxiv_metadata_key }}
+  register: metadata_check
+  changed_when: false
+
+- name: Download and upload arXiv metadata dataset
+  when: "'missing' in metadata_check.stdout"
+  block:
+    - name: Download arXiv metadata dataset
+      ansible.builtin.command:
+        cmd: "{{ pipeline_venv_dir }}/bin/kaggle datasets download {{ kaggle_dataset }} -p /tmp/arxiv --unzip"
+
+    - name: Find downloaded metadata file
+      ansible.builtin.find:
+        paths: /tmp/arxiv
+        patterns: "*.json"
+      register: found_files
+
+    - name: Upload metadata to MinIO
+      ansible.builtin.command:
+        cmd: >
+          {{ python_path }} /tmp/upload_metadata.py
+          {{ minio_host }}:{{ minio_port }}
+          {{ minio_root_user }}
+          {{ minio_root_password }}
+          {{ minio_bucket_name }}
+          papers/{{ arxiv_metadata_key }}
+          {{ found_files.files[0].path }}
+      register: upload_result
+      changed_when: "'uploaded' in upload_result.stdout"
+
+    - name: Clean up temporary download
+      ansible.builtin.file:
+        path: /tmp/arxiv
+        state: absent

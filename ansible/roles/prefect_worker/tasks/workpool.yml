@@ -1,3 +1,10 @@
+- name: Wait for Prefect server to be ready
+  ansible.builtin.wait_for:
+    host: "{{ prefect_server_host }}"
+    port: "{{ prefect_server_port }}"
+    delay: 5
+    timeout: 60
+
 - name: Create Dask work pool
   ansible.builtin.command:
     cmd: >

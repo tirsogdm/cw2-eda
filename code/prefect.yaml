@@ -11,7 +11,8 @@ deployments:
     work_pool:
       name: lit-sem-search-pool
     parameters:
-      paper_ids_file: /opt/literature-sem-search/data/paper_ids.json
+      paper_ids_key: "papers/arxiv-metadata.json"
+      max_papers: 20000
 
   - name: query-flow
     entrypoint: flows/query_flow.py:query_flow

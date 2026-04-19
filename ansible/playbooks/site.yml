@@ -9,6 +9,7 @@
     - minio_server
     - prefect_server
     - prefect_worker
+    - dataset
 
 - hosts: workers
   roles:

@@ -2,8 +2,6 @@ from pathlib import Path
 import sys
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
 from tasks.embed import generate_embedding
 from config import EMBEDDING_DIM
 

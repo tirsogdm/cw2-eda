@@ -6,8 +6,6 @@ import faiss
 import json
 import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
 from tasks.fetch import fetch_pdf
 from tasks.index import build_index
 from tasks.save import save_embedding
