@@ -84,16 +84,28 @@ def indexing_flow(paper_ids_key: str = "papers/arxiv-metadata.json", max_papers:
         return None
     logger.info(f"Loaded {len(paper_ids)} paper IDs (max: {max_papers})")
 
-    # Submit all papers to Dask workers in parallel
-    futures = [process_paper.submit(pid) for pid in paper_ids]
-    logger.info(f"Submitted {len(futures)} tasks to Dask cluster")
+    # Distribute in batches
+    results = []
+    batch_size = 5000
+    batch_count = 1
+    total_successful = 0
+    total_failed = 0
 
-    # Wait for all tasks to complete
-    results = [f.result() for f in futures]
-
-    successful = sum(1 for r in results if r is True)
-    failed = len(results) - successful
-    logger.info(f"Processing complete: {successful} succeeded, {failed} failed")
+    for i in range(0, len(paper_ids), batch_size):
+        batch = paper_ids[i:i+batch_size]
+        batch_futures = [process_paper.submit(pid) for pid in batch]
+        logger.info(f"Submitted batch #{batch_count} of {len(batch)} tasks to Dask cluster")
+        
+        batch_results = [f.result() for f in batch_futures]
+        successful = sum(1 for r in batch_results if r is True)
+        failed = len(batch_results) - successful
+        
+        logger.info(f"Batch #{batch_count} complete: {successful} succeeded, {failed} failed")
+        
+        total_successful += successful
+        total_failed += failed
+        results.extend(batch_results)
+        batch_count += 1
 
     # --------------------------------------------------------------------------
     # Build FAISS index on host
@@ -106,7 +118,7 @@ def indexing_flow(paper_ids_key: str = "papers/arxiv-metadata.json", max_papers:
     else:
         logger.error("Index build failed")
 
-    return {"successful": successful, "failed": failed}
+    return {"successful": total_successful, "failed": total_failed}
 
 
 if __name__ == "__main__":
