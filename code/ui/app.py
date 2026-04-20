@@ -38,7 +38,6 @@ def get_minio_client() -> Minio:
         secure=False
     )
 
-
 def get_index_info() -> dict:
     """Get current FAISS index status."""
     index_path = Path(FAISS_INDEX_PATH)
@@ -55,7 +54,6 @@ def get_index_info() -> dict:
         "size_mb": round(size_mb, 2),
     }
 
-
 def trigger_deployment(deployment_name: str, parameters: dict) -> str:
     """Trigger a Prefect deployment and return the flow run ID."""
     async def _run():
@@ -68,7 +66,6 @@ def trigger_deployment(deployment_name: str, parameters: dict) -> str:
             return str(flow_run.id)
     return asyncio.run(_run())
 
-
 def get_flow_run_status(flow_run_id: str) -> dict:
     """Get current status of a flow run."""
     async def _run():
@@ -79,7 +76,6 @@ def get_flow_run_status(flow_run_id: str) -> dict:
                 "type": flow_run.state.type.value if flow_run.state else "unknown",
             }
     return asyncio.run(_run())
-
 
 def get_recent_flow_runs(flow_name: str, limit: int = 5) -> list:
     async def _run():
@@ -108,7 +104,6 @@ def get_recent_flow_runs(flow_name: str, limit: int = 5) -> list:
             ]
     return asyncio.run(_run())
 
-
 def upload_to_minio(file_bytes: bytes, object_key: str) -> bool:
     """Upload file bytes to MinIO."""
     try:
@@ -124,6 +119,22 @@ def upload_to_minio(file_bytes: bytes, object_key: str) -> bool:
     except S3Error:
         return False
 
+def get_all_results() -> list:
+    """Get all query results from MinIO"""
+    try:
+        client = get_minio_client()
+        objects = list(client.list_objects(MINIO_BUCKET_NAME, prefix="results/"))
+        all_results = []
+        for obj in objects:
+            response = client.get_object(MINIO_BUCKET_NAME, obj.object_name)
+            data = json.loads(response.read().decode('utf-8'))
+            response.close()
+            response.release_conn()
+            data["_last_modified"] = obj.last_modified
+            all_results.append(data)
+        return sorted(all_results, key=lambda x: x["_last_modified"], reverse=True)
+    except S3Error:
+        return []
 
 # ---------------------------------------------------------------------------
 # App
@@ -142,6 +153,17 @@ tab1, tab2 = st.tabs(["Index Management", "Semantic search"])
 # Tab 1: Index Management
 # ---------------------------------------------------------------------------
 with tab1:
+    # Initialise and recover indexing run ID
+    if "indexing_run_id" not in st.session_state:
+        st.session_state["indexing_run_id"] = ""
+
+    # Backup: check recent runs if session state is empty
+    runs = get_recent_flow_runs("indexing-flow", limit=15)
+    if not st.session_state["indexing_run_id"]:
+        active = next((r for r in runs if r["state"] in ("Running", "Pending")), None)
+        if active:
+            st.session_state["indexing_run_id"] = active["id"]
+    
     st.title("Index Management")
     st.markdown("Build and manage the semantic search index across the distributed cluster.")
 
@@ -154,6 +176,29 @@ with tab1:
         c1.metric("Status", "Ready")
         c2.metric("Papers Indexed", f"{info['papers']:,}")
         c3.metric("Index Size", f"{info['size_mb']} MB")
+        
+        if st.button("Delete Index"):
+            st.session_state["confirm_delete"] = True
+   
+        if st.session_state.get("confirm_delete"):
+            st.error("Are you sure? This will delete the FAISS index and all embeddings.")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Yes, delete", type="primary"):
+                    with st.spinner("Deleting index and embeddings..."):
+                        Path(FAISS_INDEX_PATH).unlink(missing_ok=True)
+                        Path(METADATA_PATH).unlink(missing_ok=True)
+                        client = get_minio_client()
+                        objects = list(client.list_objects(MINIO_BUCKET_NAME, prefix="embeddings/"))
+                        for obj in objects:
+                            client.remove_object(MINIO_BUCKET_NAME, obj.object_name)
+                    st.session_state["confirm_delete"] = False
+                    st.success(f"Deleted index and {len(objects)} embeddings")
+                    st.rerun()
+            with col2:
+                if st.button("Cancel"):
+                    st.session_state["confirm_delete"] = False
+                    st.rerun()
     else:
         st.warning("No index found. Run the indexing flow to build one.")
 
@@ -204,7 +249,7 @@ with tab1:
             paper_ids_key = st.session_state["custom_key"]
             st.info(f"Using: {paper_ids_key}")
 
-    if st.button("Launch Indexing Flow", type="primary"):
+    if st.button("Launch Indexing Flow", type="primary", disabled=(info["exists"] or st.session_state["indexing_run_id"] != "")):
         with st.spinner("Triggering indexing flow..."):
             try:
                 run_id = trigger_deployment(
@@ -218,36 +263,49 @@ with tab1:
                 st.success(f"Flow run started: `{run_id}`")
             except Exception as e:
                 st.error(f"Failed to trigger flow: {e}")
+        
+    if info["exists"]:
+        st.warning("Delete existing index before launching a new indexing run.")
+    elif st.session_state["indexing_run_id"]:
+        st.warning("An indexing run is currently in progress. See progress section below.")
 
     st.divider()
 
-    # Live progress
+    # Flow run live progress
     st.subheader("Flow Run Progress")
-
     auto_refresh = st.checkbox("Auto-refresh", value=True)
-    refresh_interval = st.slider("Refresh interval (seconds)", 5, 60, 15)
 
-    if "indexing_run_id" in st.session_state:
+    if st.session_state["indexing_run_id"]:
         run_id = st.session_state["indexing_run_id"]
-        st.caption(f"Monitoring run: `{run_id}`")
+        # Prefect UI link
+        st.link_button("View run in Prefect UI", f"{PREFECT_UI_BASE_URL}/runs/flow-run/{run_id}")
 
+        st.caption(f"Monitoring run: `{run_id}`")
         status = get_flow_run_status(run_id)
         state = status["state"]
         state_type = status["type"]
 
         if state_type == "COMPLETED":
             st.success(f"Flow completed successfully")
+            st.session_state["indexing_run_id"] = ""
         elif state_type == "FAILED":
             st.error(f"Flow failed")
-        elif state_type in ("RUNNING", "PENDING"):
-            st.info(f"Flow is {state}...")
+            st.session_state["indexing_run_id"] = ""
         else:
-            st.write(f"State: {state}")
+            st.info(f"Flow is {state}...")
 
     st.subheader("Recent Indexing Runs")
-    runs = get_recent_flow_runs("indexing-flow")
     if runs:
-        st.dataframe(pd.DataFrame(runs), use_container_width=True, hide_index=True)
+        df = pd.DataFrame(runs)
+        df["prefect_url"] = df["id"].apply(lambda x: f"{PREFECT_UI_BASE_URL}/runs/flow-run/{x}")
+        st.dataframe(
+            df[["name", "state", "created", "prefect_url"]],
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "prefect_url": st.column_config.LinkColumn("Prefect UI")
+            }
+        )
     else:
         st.info("No recent runs found.")
 
@@ -273,12 +331,11 @@ with tab1:
     else:
         st.info("Build an index first to enable downloads.")
 
-    if auto_refresh and "indexing_run_id" in st.session_state:
-        status = get_flow_run_status(st.session_state["indexing_run_id"])
-        if status["type"] in ("RUNNING", "PENDING"):
-            time.sleep(refresh_interval)
+    # Auto-refresh
+    if auto_refresh and st.session_state["indexing_run_id"]:
+        if state_type in ("RUNNING", "PENDING", "SCHEDULED"):
+            time.sleep(2)
             st.rerun()
-
 
 # ---------------------------------------------------------------------------
 # Tab 2: Search
@@ -290,48 +347,95 @@ with tab2:
     info = get_index_info()
     if not info["exists"]:
         st.warning("No index found. Please build an index first in Index Management.")
-        st.stop()
+    else:
+        st.info(f"Index ready — {info['papers']:,} papers indexed")
 
-    st.info(f"Index ready — {info['papers']:,} papers indexed")
+        if "query_input" not in st.session_state:
+            st.session_state["query_input"] = ""
 
-    query = st.text_input(
-        "Research question",
-        placeholder="e.g. distributed computing frameworks for machine learning"
-    )
-    top_k = st.slider("Number of results", min_value=1, max_value=50, value=10)
+        query = st.text_input(
+            "Research question",
+            placeholder="e.g. distributed computing frameworks for machine learning",
+        )
 
-    if st.button("Search", type="primary") and query:
-        with st.spinner("Searching..."):
-            try:
-                run_id = trigger_deployment(
-                    "query-flow/query-flow",
-                    parameters={
-                        "query": query,
-                        "top_k": top_k
+        top_k = st.slider("Number of results", min_value=1, max_value=50, value=10)
+
+        if st.button("Search", type="primary") and query:
+            with st.spinner("Searching..."):
+                try:
+                    run_id = trigger_deployment(
+                        "query-flow/query-flow",
+                        parameters={
+                            "query": query,
+                            "top_k": top_k
+                        }
+                    )
+                    # Prefect UI link
+                    st.link_button("View run in Prefect UI", f"{PREFECT_UI_BASE_URL}/runs/flow-run/{run_id}")
+                
+                    st.session_state["query_run_id"] = run_id
+
+                    # Poll until complete
+                    for _ in range(30):
+                        time.sleep(2)
+                        status = get_flow_run_status(run_id)
+                        if status["type"] == "COMPLETED":
+                            break
+                        elif status["type"] == "FAILED":
+                            st.error("Query flow failed")
+                            st.stop()
+
+                    st.success("Search complete!")
+
+                except Exception as e:
+                    st.error(f"Search failed: {e}")
+
+                st.rerun()
+
+        all_results = get_all_results()
+
+        # Display results
+        if "query_run_id" in st.session_state:
+            run_id = st.session_state["query_run_id"]
+
+            # Current run_id results payload
+            current = next((r for r in all_results if r["run_id"] == run_id), None)
+            if current:
+                results = current["results"]
+                query_text = current["query"]
+                st.subheader(f"Results")
+                st.caption(f"Query: *{query_text}*")
+            
+                df = pd.DataFrame(results)
+                df["score"] = df["score"].round(4)
+                st.dataframe(
+                    df[["rank", "paper_id", "score", "url"]],
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "url": st.column_config.LinkColumn("arXiv Link")
                     }
                 )
-                st.session_state["query_run_id"] = run_id
-                st.session_state["query_results"] = None
+                
+                # Download results
+                csv = df.to_csv(index=False)
+                st.download_button(
+                    label="⬇ Download Results CSV",
+                    data=csv,
+                    file_name=f"results_{run_id[:8]}.csv",
+                    mime="text/csv"
+                )
+            else:
+                st.info("Results not yet available — try refreshing.")
 
-                # Poll until complete
-                for _ in range(30):
-                    time.sleep(2)
-                    status = get_flow_run_status(run_id)
-                    if status["type"] == "COMPLETED":
-                        break
-                    elif status["type"] == "FAILED":
-                        st.error("Query flow failed")
-                        st.stop()
-
-                st.success("Search complete!")
-
-            except Exception as e:
-                st.error(f"Search failed: {e}")
-
-    # Display results
-    if "query_run_id" in st.session_state:
-        st.subheader("Results")
-        st.info("Results are logged in the Prefect UI — check the flow run logs for ranked paper IDs and scores.")
-
-        run_id = st.session_state["query_run_id"]
-        st.markdown(f"[View in Prefect UI]({PREFECT_UI_BASE_URL}/runs/flow-run/{run_id})")
+        if all_results:
+            st.divider()
+            st.subheader("Search History")
+            for entry in all_results:
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    st.markdown(f"[*{entry['query']}*]({PREFECT_UI_BASE_URL}/runs/flow-run/{entry['run_id']})")
+                with col2:
+                    if st.button("Load", key=entry["run_id"]):
+                        st.session_state["query_run_id"] = entry["run_id"]
+                        st.rerun()

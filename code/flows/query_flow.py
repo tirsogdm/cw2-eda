@@ -4,9 +4,20 @@ import faiss
 from pathlib import Path
 from typing import Optional
 from prefect import flow, get_run_logger
-from config import FAISS_INDEX_PATH, METADATA_PATH, EMBEDDING_DIM
+import io
+from minio import Minio
+from minio.error import S3Error
+from config import (
+    FAISS_INDEX_PATH,
+    METADATA_PATH,
+    EMBEDDING_DIM,
+    MINIO_HOST,
+    MINIO_PORT,
+    MINIO_ROOT_USER,
+    MINIO_ROOT_PASSWORD,
+    MINIO_BUCKET_NAME
+)
 from tasks.embed import generate_embedding
-
 
 def _load_index():
     """
@@ -25,6 +36,34 @@ def _load_index():
         paper_ids = json.load(f)
 
     return index, paper_ids
+
+def _get_minio_client() -> Minio:
+    return Minio(
+        f"{MINIO_HOST}:{MINIO_PORT}",
+        access_key=MINIO_ROOT_USER,
+        secret_key=MINIO_ROOT_PASSWORD,
+        secure=False
+    )
+
+def _save_results(results: list, run_id: str, query: str) -> bool:
+    try:
+        client = _get_minio_client()
+        payload = {
+            "query": query,
+            "run_id": run_id,
+            "results": results
+        }
+        data = json.dumps(payload).encode('utf-8')
+        client.put_object(
+            MINIO_BUCKET_NAME,
+            f"results/{run_id}.json",
+            io.BytesIO(data),
+            len(data),
+            content_type="application/json"
+        )
+        return True
+    except S3Error as e:
+        return False
 
 
 @flow(name="query-flow")
@@ -75,6 +114,12 @@ def query_flow(query: str, top_k: int = 10) -> Optional[list]:
     for r in results:
         logger.info(f"  {r['rank']}. {r['paper_id']} (score: {r['score']:.4f})")
 
+    # Save results
+    import prefect.runtime.flow_run as flow_run_ctx
+    run_id = flow_run_ctx.id
+    _save_results(results, run_id, query)
+
+    logger.info(f"Results saved to MinIO: results/{run_id}.json")
     return results
 
 

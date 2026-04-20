@@ -28,8 +28,7 @@ def _get_minio_client() -> Minio:
 
 def _stream_paper_ids(paper_ids_key: str, max_papers: int) -> list:
     """
-    Stream arXiv metadata JSONL from MinIO line by line,
-    extracting paper IDs up to max_papers.
+    Stream arXiv metadata from MinIO line by line, extracting paper IDs up to max_papers.
     """
     try:
         client = _get_minio_client()
@@ -43,8 +42,14 @@ def _stream_paper_ids(paper_ids_key: str, max_papers: int) -> list:
             if not line:
                 continue
             try:
-                paper = json.loads(line)
-                paper_ids.append(paper['id'])
+                parsed = json.loads(line)
+                if isinstance(parsed, list):
+                    # Plain JSON array format ["id1", "id2", ...]
+                    paper_ids.extend(parsed[:max_papers - len(paper_ids)])
+                    break
+                elif isinstance(parsed, dict):
+                    # JSONL format {"id": "...", ...}
+                    paper_ids.append(parsed['id'])
             except json.JSONDecodeError:
                 continue
         
