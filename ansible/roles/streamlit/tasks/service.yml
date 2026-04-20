@@ -1,0 +1,19 @@
+- name: Deploy Streamlit systemd service
+  become: true
+  ansible.builtin.template:
+    src: streamlit.service.j2
+    dest: /etc/systemd/system/streamlit.service
+    mode: '0644'
+  notify: restart streamlit
+
+- name: Reload systemd
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Enable and start Streamlit
+  become: true
+  ansible.builtin.systemd:
+    name: streamlit
+    enabled: true
+    state: started

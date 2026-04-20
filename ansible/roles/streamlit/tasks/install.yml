@@ -1,0 +1,5 @@
+- name: Install Streamlit dependencies
+  ansible.builtin.pip:
+    virtualenv: "{{ pipeline_venv_dir }}"
+    name: "{{ streamlit_python_deps }}"
+    state: latest

@@ -1,0 +1,17 @@
+[Unit]
+Description=Streamlit UI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=almalinux
+ExecStart={{ pipeline_venv_dir }}/bin/streamlit run {{ streamlit_app_path }} \
+    --server.port {{ streamlit_port }} \
+    --server.address {{ controller_ip }}
+Restart=on-failure
+RestartSec=5
+Environment=PREFECT_API_URL={{ prefect_api_url }}
+Environment=HOME={{ home_path }}
+
+[Install]
+WantedBy=multi-user.target

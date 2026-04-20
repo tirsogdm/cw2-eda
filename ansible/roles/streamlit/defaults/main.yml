@@ -1,0 +1,6 @@
+streamlit_python_deps:
+  - streamlit
+  - pandas
+  
+streamlit_port: 8501
+streamlit_app_path: "{{ pipeline_code_dir }}/ui/app.py"

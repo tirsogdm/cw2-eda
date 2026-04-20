@@ -1,0 +1,6 @@
+- name: restart streamlit
+  become: true
+  ansible.builtin.systemd:
+    name: streamlit
+    daemon_reload: true
+    state: restarted

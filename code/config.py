@@ -32,3 +32,7 @@ FAISS_INDEX_PATH = os.getenv("FAISS_INDEX_PATH", f"{DATA_DIR}/faiss.index")
 
 # Dask
 DASK_SCHEDULER_URL = "tcp://controller-node:8786"
+
+# Prefect
+PREFECT_API_URL = os.getenv("PREFECT_API_URL", "http://controller-node:4200/api")
+PREFECT_UI_BASE_URL = os.getenv("PREFECT_UI_BASE_URL", "https://prefect-ucabtg2.comp0235.condenser.arc.ucl.ac.uk")

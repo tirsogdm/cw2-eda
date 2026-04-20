@@ -12,6 +12,7 @@
     - prefect_worker
     - dataset
     - prometheus
+    - streamlit
 
 - hosts: workers
   roles:
