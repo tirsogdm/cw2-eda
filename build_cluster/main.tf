@@ -90,6 +90,9 @@ resource "harvester_virtualmachine" "host" {
     
     condenser_ingress_minio_hostname = "minio-${var.username}"
     condenser_ingress_minio_port = 9001
+
+    condenser_ingress_prometheus_hostname = "prometheus-${var.username}"
+    condenser_ingress_prometheus_port = 9090
   }
 }
 
