@@ -93,6 +93,9 @@ resource "harvester_virtualmachine" "host" {
 
     condenser_ingress_prometheus_hostname = "prometheus-${var.username}"
     condenser_ingress_prometheus_port = 9090
+  
+    condenser_ingress_streamlit_hostname = "literature-sem-search-${var.username}"
+    condenser_ingress_streamlit_port = 8501
   }
 }
 
