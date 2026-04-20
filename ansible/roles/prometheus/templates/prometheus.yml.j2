@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: node_exporter
+    static_configs:
+    # Controller
+{% for h in groups['controller'] | default([]) %}
+      - targets: ["{{ hostvars[h].ansible_host }}:{{ node_exporter_port }}"]
+        labels:
+          node: "{{ h }}"
+          role: "controller"
+{% endfor %}
+    
+    # Workers
+{% for h in groups['workers'] | default([]) %}
+      - targets: ["{{ hostvars[h].ansible_host }}:{{ node_exporter_port }}"]
+        labels:
+          node: "{{ h }}"
+          role: "worker"
+{% endfor %}

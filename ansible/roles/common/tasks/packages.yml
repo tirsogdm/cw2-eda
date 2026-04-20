@@ -12,5 +12,6 @@
       - vim
       - htop
       - tmux
+      - tar
       - net-tools
     state: present

@@ -1,0 +1,16 @@
+[Unit]
+Description=Prometheus
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=almalinux
+ExecStart=/usr/local/bin/prometheus \
+    --config.file={{ prometheus_config_dir }}/prometheus.yml \
+    --storage.tsdb.path={{ prometheus_data_dir }} \
+    --web.listen-address={{ controller_ip }}:{{ prometheus_port }}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -35,3 +35,6 @@ minio_root_user: "minioadmin"
 minio_root_password: "minioadmin" # ! add to vault
 minio_bucket_name: "lit-sem-search-bucket"
 arxiv_metadata_key: "arxiv-metadata.json"
+
+# Node exporter
+node_exporter_port: 9100

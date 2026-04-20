@@ -2,7 +2,8 @@
   roles:
     - common
     - pipeline_code
-
+    - node_exporter
+  
 - hosts: controller
   roles:
     - dask_scheduler
@@ -10,6 +11,7 @@
     - prefect_server
     - prefect_worker
     - dataset
+    - prometheus
 
 - hosts: workers
   roles:

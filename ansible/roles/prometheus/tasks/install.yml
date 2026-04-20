@@ -1,0 +1,51 @@
+- name: Download Prometheus tarball
+  ansible.builtin.get_url:
+    url: "{{ prometheus_url }}"
+    dest: "/tmp/prometheus.tar.gz"
+    mode: '0644'
+    force: false
+
+- name: Extract Prometheus tarball
+  ansible.builtin.unarchive:
+    src: "/tmp/prometheus.tar.gz"
+    dest: "/tmp"
+    remote_src: true
+
+- name: Install Prometheus binary
+  become: true
+  ansible.builtin.copy:
+    src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus"
+    dest: "/usr/local/bin/prometheus"
+    owner: root
+    group: root
+    mode: '0755'
+    remote_src: true
+
+- name: Install promtool binary
+  become: true
+  ansible.builtin.copy:
+    src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/promtool"
+    dest: "/usr/local/bin/promtool"
+    owner: root
+    group: root
+    mode: '0755'
+    remote_src: true
+
+- name: Create Prometheus data and config directories
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: almalinux
+    group: almalinux
+  loop:
+    - "{{ prometheus_data_dir }}"
+    - "{{ prometheus_config_dir }}"
+
+- name: Deploy Prometheus config
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ prometheus_config_dir }}/prometheus.yml"
+    mode: '0644'
+  notify: restart prometheus
