@@ -100,9 +100,10 @@ def indexing_flow(paper_ids_key: str = "papers/arxiv-metadata.json", max_papers:
     
     for i in range(0, len(paper_ids), batch_size):
         batch = paper_ids[i:i+batch_size]
-        logger.info(f"[batch] {batch_count}/{total_batches} starting: submitting {len(batch)} tasks")
-        append_batch_log(run_id, f"[batch] {batch_count}/{total_batches} starting...")
-        append_batch_log(run_id, f"[batch] {batch_count}/{total_batches} submitting {len(batch)} tasks to cluster...")
+        tag = f"[batch {batch_count}/{total_batches}]"
+
+        logger.info(f"{tag} starting — submitting {len(batch)} tasks to cluster...")
+        append_batch_log(run_id, f"{tag} starting — submitting {len(batch)} tasks to cluster...")
 
         batch_futures = [process_paper.submit(pid) for pid in batch]
         
@@ -114,15 +115,9 @@ def indexing_flow(paper_ids_key: str = "papers/arxiv-metadata.json", max_papers:
         total_failed += failed
         results.extend(batch_results)
 
-        logger.info(
-            f"[batch] {batch_count}/{total_batches} complete — "
-            f"batch: {successful} succeeded, {failed} failed | "
-            f"running total: {total_successful} succeeded, {total_failed} failed"
-        )
-
-        append_batch_log(run_id, f"[batch] {batch_count}/{total_batches} complete.")
-        append_batch_log(run_id, f"[batch] {batch_count}/{total_batches} {successful} succeeded, {failed} failed")
-        append_batch_log(run_id, f"[batch] {batch_count}/{total_batches} running total: {total_successful} succeeded, {total_failed} failed")
+        logger.info(f"{tag} complete — {successful} succeeded, {failed} failed | running total: {total_successful} succeeded, {total_failed} failed")
+        append_batch_log(run_id, f"{tag} complete — {successful} succeeded, {failed} failed")
+        append_batch_log(run_id, f"{tag} running total: {total_successful} succeeded, {total_failed} failed")
 
         batch_count += 1
 
