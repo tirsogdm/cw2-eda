@@ -221,7 +221,7 @@ with tab1:
         max_papers = st.number_input(
             "Max papers to index",
             min_value=10,
-            max_value=200000,
+            max_value=500000,
             value=50000,
             step=1000
         )
