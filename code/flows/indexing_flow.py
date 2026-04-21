@@ -90,21 +90,28 @@ def indexing_flow(paper_ids_key: str = "papers/arxiv-metadata.json", max_papers:
     batch_count = 1
     total_successful = 0
     total_failed = 0
-
+    total_batches = (len(paper_ids) + batch_size - 1) // batch_size
+    
     for i in range(0, len(paper_ids), batch_size):
         batch = paper_ids[i:i+batch_size]
+        logger.info(f"[batch] {batch_count}/{total_batches} starting: submitting {len(batch)} tasks")
+
         batch_futures = [process_paper.submit(pid) for pid in batch]
-        logger.info(f"Submitted batch #{batch_count} of {len(batch)} tasks to Dask cluster")
         
         batch_results = [f.result() for f in batch_futures]
         successful = sum(1 for r in batch_results if r is True)
         failed = len(batch_results) - successful
         
-        logger.info(f"Batch #{batch_count} complete: {successful} succeeded, {failed} failed")
-        
         total_successful += successful
         total_failed += failed
         results.extend(batch_results)
+
+        logger.info(
+            f"[batch] {batch_count}/{total_batches} complete — "
+            f"batch: {successful} succeeded, {failed} failed | "
+            f"running total: {total_successful} succeeded, {total_failed} failed"
+        )
+
         batch_count += 1
 
     # --------------------------------------------------------------------------

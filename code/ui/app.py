@@ -10,8 +10,9 @@ import streamlit as st
 from minio import Minio
 from minio.error import S3Error
 from prefect import get_client
-from prefect.client.schemas.filters import FlowRunFilter, FlowFilter
+from prefect.client.schemas.filters import FlowRunFilter, FlowFilter, LogFilter
 from prefect.client.schemas.sorting import FlowRunSort
+
 import asyncio
 
 from config import (
@@ -104,20 +105,23 @@ def get_recent_flow_runs(flow_name: str, limit: int = 5) -> list:
             ]
     return asyncio.run(_run())
 
-def upload_to_minio(file_bytes: bytes, object_key: str) -> bool:
-    """Upload file bytes to MinIO."""
-    try:
-        client = get_minio_client()
-        client.put_object(
-            MINIO_BUCKET_NAME,
-            object_key,
-            io.BytesIO(file_bytes),
-            len(file_bytes),
-            content_type="application/json"
-        )
-        return True
-    except S3Error:
-        return False
+def get_flow_run_logs(flow_run_id: str) -> list:
+    async def _run():
+        async with get_client() as client:
+            logs = await client.read_logs(
+                log_filter=LogFilter(
+                    flow_run_id={"any_": [flow_run_id]}
+                ),
+            )
+            return [
+                {
+                    "timestamp": str(l.timestamp)[:19],
+                    "message": l.message
+                }
+                for l in reversed(logs)
+                if "[batch]" in l.message
+            ]
+    return asyncio.run(_run())
 
 def get_all_results() -> list:
     """Get all query results from MinIO"""
@@ -136,6 +140,21 @@ def get_all_results() -> list:
     except S3Error:
         return []
 
+def upload_to_minio(file_bytes: bytes, object_key: str) -> bool:
+    """Upload file bytes to MinIO."""
+    try:
+        client = get_minio_client()
+        client.put_object(
+            MINIO_BUCKET_NAME,
+            object_key,
+            io.BytesIO(file_bytes),
+            len(file_bytes),
+            content_type="application/json"
+        )
+        return True
+    except S3Error:
+        return False
+
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
@@ -153,23 +172,23 @@ tab1, tab2 = st.tabs(["Index Management", "Semantic search"])
 # Tab 1: Index Management
 # ---------------------------------------------------------------------------
 with tab1:
+    # Get index info
+    info = get_index_info()
+
     # Initialise and recover indexing run ID
     if "indexing_run_id" not in st.session_state:
         st.session_state["indexing_run_id"] = ""
 
-    # Backup: check recent runs if session state is empty
-    runs = get_recent_flow_runs("indexing-flow", limit=15)
-    if not st.session_state["indexing_run_id"]:
-        active = next((r for r in runs if r["state"] in ("Running", "Pending")), None)
-        if active:
-            st.session_state["indexing_run_id"] = active["id"]
+    # Backup: check recent runs if session state is empty and index exists
+    runs = get_recent_flow_runs("indexing-flow", limit=20)
+    if not st.session_state["indexing_run_id"] and runs and info["exists"]:
+        st.session_state["indexing_run_id"] = runs[0]["id"]
     
     st.title("Index Management")
     st.markdown("Build and manage the semantic search index across the distributed cluster.")
 
     # Current index status
     st.subheader("Current Index Status")
-    info = get_index_info()
 
     if info["exists"]:
         c1, c2, c3 = st.columns(3)
@@ -193,6 +212,7 @@ with tab1:
                         for obj in objects:
                             client.remove_object(MINIO_BUCKET_NAME, obj.object_name)
                     st.session_state["confirm_delete"] = False
+                    st.session_state["indexing_run_id"] = ""  # clear last run
                     st.success(f"Deleted index and {len(objects)} embeddings")
                     st.rerun()
             with col2:
@@ -277,22 +297,28 @@ with tab1:
 
     if st.session_state["indexing_run_id"]:
         run_id = st.session_state["indexing_run_id"]
-        # Prefect UI link
         st.link_button("View run in Prefect UI", f"{PREFECT_UI_BASE_URL}/runs/flow-run/{run_id}")
-
         st.caption(f"Monitoring run: `{run_id}`")
+        
         status = get_flow_run_status(run_id)
         state = status["state"]
         state_type = status["type"]
 
         if state_type == "COMPLETED":
-            st.success(f"Flow completed successfully")
-            st.session_state["indexing_run_id"] = ""
+            st.success("Status: **completed successfully**")
         elif state_type == "FAILED":
-            st.error(f"Flow failed")
-            st.session_state["indexing_run_id"] = ""
+            st.error("Status: **failed**")
+        elif state_type == "SCHEDULED":
+            st.warning(f"Status: **{state}**...")
         else:
-            st.info(f"Flow is {state}...")
+            st.info(f"Status: **{state}**...")
+
+        # Batch progress logs
+        logs = get_flow_run_logs(run_id)
+        if logs:
+            st.caption("Batch progress:")
+            log_text = "\n".join(f"{l['timestamp']} — {l['message']}" for l in logs)
+            st.text_area("", value=log_text, height=100, disabled=True, label_visibility="collapsed")
 
     st.subheader("Recent Indexing Runs")
     if runs:
@@ -353,12 +379,14 @@ with tab2:
         if "query_input" not in st.session_state:
             st.session_state["query_input"] = ""
 
-        query = st.text_input(
-            "Research question",
-            placeholder="e.g. distributed computing frameworks for machine learning",
-        )
-
-        top_k = st.slider("Number of results", min_value=1, max_value=50, value=10)
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            query = st.text_input(
+                "Research question",
+                placeholder="e.g. distributed computing frameworks for machine learning",
+            )
+        with col2:
+            top_k = st.number_input("Number of results", min_value=1, max_value=50, value=10)
 
         if st.button("Search", type="primary") and query:
             with st.spinner("Searching..."):
