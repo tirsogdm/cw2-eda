@@ -1,13 +1,18 @@
 import json
 from pathlib import Path
 from prefect import flow, get_run_logger
+from prefect.runtime import flow_run as flow_run_ctx
 from prefect_dask import DaskTaskRunner
+import faiss
+
+import io
 from minio import Minio
 from minio.error import S3Error
-import faiss
+from datetime import datetime, timezone
 
 from tasks.process import process_paper
 from tasks.index import build_index
+from tasks.logging import append_batch_log
 from config import (
     DASK_SCHEDULER_URL,
     MINIO_HOST,
@@ -75,6 +80,7 @@ def indexing_flow(paper_ids_key: str = "papers/arxiv-metadata.json", max_papers:
         max_papers: maximum number of papers to index
     """
     logger = get_run_logger()
+    run_id = flow_run_ctx.id
 
     # Stream load paper IDs
     logger.info(f"Stream loading metadata from MinIO: {paper_ids_key}")
@@ -95,6 +101,8 @@ def indexing_flow(paper_ids_key: str = "papers/arxiv-metadata.json", max_papers:
     for i in range(0, len(paper_ids), batch_size):
         batch = paper_ids[i:i+batch_size]
         logger.info(f"[batch] {batch_count}/{total_batches} starting: submitting {len(batch)} tasks")
+        append_batch_log(run_id, f"[batch] {batch_count}/{total_batches} starting...")
+        append_batch_log(run_id, f"[batch] {batch_count}/{total_batches} submitting {len(batch)} tasks to cluster...")
 
         batch_futures = [process_paper.submit(pid) for pid in batch]
         
@@ -111,6 +119,10 @@ def indexing_flow(paper_ids_key: str = "papers/arxiv-metadata.json", max_papers:
             f"batch: {successful} succeeded, {failed} failed | "
             f"running total: {total_successful} succeeded, {total_failed} failed"
         )
+
+        append_batch_log(run_id, f"[batch] {batch_count}/{total_batches} complete.")
+        append_batch_log(run_id, f"[batch] {batch_count}/{total_batches} {successful} succeeded, {failed} failed")
+        append_batch_log(run_id, f"[batch] {batch_count}/{total_batches} running total: {total_successful} succeeded, {total_failed} failed")
 
         batch_count += 1
 

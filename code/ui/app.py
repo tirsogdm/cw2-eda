@@ -105,24 +105,6 @@ def get_recent_flow_runs(flow_name: str, limit: int = 5) -> list:
             ]
     return asyncio.run(_run())
 
-def get_flow_run_logs(flow_run_id: str) -> list:
-    async def _run():
-        async with get_client() as client:
-            logs = await client.read_logs(
-                log_filter=LogFilter(
-                    flow_run_id={"any_": [flow_run_id]}
-                ),
-            )
-            return [
-                {
-                    "timestamp": str(l.timestamp)[:19],
-                    "message": l.message
-                }
-                for l in reversed(logs)
-                if "[batch]" in l.message
-            ]
-    return asyncio.run(_run())
-
 def get_all_results() -> list:
     """Get all query results from MinIO"""
     try:
@@ -139,6 +121,18 @@ def get_all_results() -> list:
         return sorted(all_results, key=lambda x: x["_last_modified"], reverse=True)
     except S3Error:
         return []
+
+def get_flow_run_logs(flow_run_id: str) -> str:
+    """Get all flow run logs from minio"""
+    try:
+        client = get_minio_client()
+        response = client.get_object(MINIO_BUCKET_NAME, f"logs/{flow_run_id}.txt")
+        content = response.read().decode('utf-8')
+        response.close()
+        response.release_conn()
+        return content
+    except:
+        return ""
 
 def upload_to_minio(file_bytes: bytes, object_key: str) -> bool:
     """Upload file bytes to MinIO."""
@@ -319,8 +313,7 @@ with tab1:
         logs = get_flow_run_logs(run_id)
         if logs:
             st.caption("Batch progress:")
-            log_text = "\n".join(f"{l['timestamp']} — {l['message']}" for l in logs)
-            st.text_area("", value=log_text, height=100, disabled=True, label_visibility="collapsed")
+            st.text_area("", value=logs, height=100, disabled=True, label_visibility="collapsed")
 
     st.subheader("Recent Indexing Runs")
     if runs:
@@ -362,7 +355,7 @@ with tab1:
     # Auto-refresh
     if auto_refresh and st.session_state["indexing_run_id"]:
         if state_type in ("RUNNING", "PENDING", "SCHEDULED"):
-            time.sleep(2)
+            time.sleep(5)
             st.rerun()
 
 # ---------------------------------------------------------------------------
