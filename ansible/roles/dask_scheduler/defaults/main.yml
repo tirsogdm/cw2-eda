@@ -1,3 +1,5 @@
 # Dask-scheduler Python Dependencies 
 dask_scheduler_python_deps:
   - dask[distributed]
+  - pandas
+  - bokeh
