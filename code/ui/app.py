@@ -181,8 +181,10 @@ with tab1:
 
     # Backup: check recent runs if session state is empty and index exists
     runs = get_recent_flow_runs("indexing-flow", limit=20)
-    if not st.session_state["indexing_run_id"] and runs and info["exists"]:
-        st.session_state["indexing_run_id"] = runs[0]["id"]
+    if not st.session_state["indexing_run_id"] and runs:
+        latest = runs[0]
+        if latest["state"] in ("Running", "Pending", "Scheduled") or info["exists"]:
+            st.session_state["indexing_run_id"] = latest["id"]
     
     st.title("Index Management")
     st.markdown("Build and manage the semantic search index across the distributed cluster.")
