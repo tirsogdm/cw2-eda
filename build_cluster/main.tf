@@ -38,7 +38,7 @@ resource "harvester_virtualmachine" "host" {
   description = "Base VM"
 
   cpu    = 2
-  memory = "8Gi"
+  memory = "12Gi"
 
   efi         = true
   secure_boot = true
@@ -58,7 +58,7 @@ resource "harvester_virtualmachine" "host" {
   disk {
     name       = "rootdisk"
     type       = "disk"
-    size       = "52Gi"
+    size       = "74Gi"
     bus        = "virtio"
     boot_order = 1
 
@@ -110,7 +110,7 @@ resource "harvester_virtualmachine" "worker" {
   description = "Base VM"
 
   cpu    = 5
-  memory = "33Gi"
+  memory = "32Gi"
 
   efi         = true
   secure_boot = true
@@ -130,7 +130,7 @@ resource "harvester_virtualmachine" "worker" {
   disk {
     name       = "rootdisk"
     type       = "disk"
-    size       = "112Gi"
+    size       = "34Gi"
     bus        = "virtio"
     boot_order = 1
 

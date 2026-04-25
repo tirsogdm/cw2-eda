@@ -2,23 +2,23 @@
     "_meta": {
         "hostvars": {
             "controller-node": {
-                "ansible_host": "10.134.12.35",
+                "ansible_host": "10.134.12.209",
                 "ansible_user": "almalinux"
             },
             "worker-node1": {
-                "ansible_host": "10.134.12.166",
+                "ansible_host": "10.134.12.212",
                 "ansible_user": "almalinux"
             },
             "worker-node2": {
-                "ansible_host": "10.134.12.38",
+                "ansible_host": "10.134.12.211",
                 "ansible_user": "almalinux"
             },
             "worker-node3": {
-                "ansible_host": "10.134.12.34",
+                "ansible_host": "10.134.12.208",
                 "ansible_user": "almalinux"
             },
             "worker-node4": {
-                "ansible_host": "10.134.12.57",
+                "ansible_host": "10.134.12.210",
                 "ansible_user": "almalinux"
             }
         }
