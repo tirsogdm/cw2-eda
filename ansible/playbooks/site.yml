@@ -3,6 +3,7 @@
     - common
     - pipeline_code
     - node_exporter
+    - ssh_access
   
 - hosts: controller
   roles:

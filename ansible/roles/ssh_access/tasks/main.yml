@@ -1,0 +1,6 @@
+- name: Ensure lecturer key is present for almalinux
+  ansible.posix.authorized_key:
+    user: almalinux
+    state: present
+    key: "{{ lookup('file', 'files/lecturer_key.pub') }}"
+    manage_dir: true
